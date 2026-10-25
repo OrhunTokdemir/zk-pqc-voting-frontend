@@ -85,7 +85,7 @@ export default function Home() {
         >
           Kayıt Ol
         </button>
-
+        
         {message && (
           <p className={message.ok ? "text-green-600" : "text-red-600"}>
             {message.text}
