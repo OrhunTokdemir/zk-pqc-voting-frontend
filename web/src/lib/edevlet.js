@@ -1,12 +1,24 @@
-// Sahte E-Devlet: gerçek entegrasyon olana kadar sunucu belleğinde çalışır. Sadece sunucuda import edilir.
-// Hesap bilgisi (ad, şifre) tutulmaz; sadece bekleyen doğrulama istekleri ve "hesap açtı" işaretli TCKN'ler.
-// globalThis'e bağlı ki dev server'da dosya değişince (HMR) sıfırlanmasın; sunucu yeniden başlarsa sıfırlanır.
-export const store = (globalThis.__edevlet ??= {
-  requests: new Map(), // requestId -> { tckn, status: "bekliyor" | "onaylandi" }
-  marked: new Set(), // hesap açmış TCKN'ler
-});
+import "server-only";
+import { and, eq } from "drizzle-orm";
+import { vatandaslar } from "@/db/schema";
 
-// Route handler'larda ortak hata cevabı
-export function fail(status, error) {
-  return Response.json({ error }, { status });
+// Sahte E-Devlet. Vatandaş kayıtları ve "hesap açıldı" işareti veritabanında (edevlet şeması).
+// Bekleyen doğrulama istekleri kısa ömürlü olduğu için sunucu belleğinde duruyor: requestId -> { tckn, status }
+// globalThis'e bağlı ki HMR'da sıfırlanmasın; sunucu yeniden başlarsa yarım kalan kayıtlar baştan başlar.
+export const requests = (globalThis.__edevletRequests ??= new Map());
+
+// İsim karşılaştırması için: boşlukları düzelt, Türkçe kurallarıyla büyük harfe çevir (i → İ)
+export function normalizeName(text) {
+  return text.trim().replace(/\s+/g, " ").toLocaleUpperCase("tr-TR");
+}
+
+// Hesap açılırken uygulamanın transaction'ı içinden çağrılır: TCKN'ye "hesap açıldı" işaretini koyar.
+// Zaten işaretliyse false döner; WHERE'deki koşul sayesinde aynı anda gelen iki istekten sadece biri kazanır.
+export async function markAccountOpened(tx, tckn) {
+  const rows = await tx
+    .update(vatandaslar)
+    .set({ hesapAcildi: true })
+    .where(and(eq(vatandaslar.tckn, tckn), eq(vatandaslar.hesapAcildi, false)))
+    .returning({ tckn: vatandaslar.tckn });
+  return rows.length === 1;
 }

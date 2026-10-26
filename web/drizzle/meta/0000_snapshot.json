@@ -1,0 +1,85 @@
+{
+  "id": "bd995845-bb4b-4a70-9dc4-0e96a2121b57",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "edevlet.vatandaslar": {
+      "name": "vatandaslar",
+      "schema": "edevlet",
+      "columns": {
+        "tckn": {
+          "name": "tckn",
+          "type": "char(11)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ad": {
+          "name": "ad",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "soyad": {
+          "name": "soyad",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hesap_acildi": {
+          "name": "hesap_acildi",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {
+    "edevlet": "edevlet"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

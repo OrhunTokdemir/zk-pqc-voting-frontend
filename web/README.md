@@ -1,3 +1,21 @@
+## Kurulum (veritabanı)
+
+1. Postgres'i başlat: `npm run db:up` (Docker yerine Podman kullanıyorsan: `podman compose up -d`)
+2. `web/.env.local` dosyasını oluştur (git'e girmez):
+
+   ```
+   DATABASE_URL=postgresql://voting-authority:postgres@localhost:5432/postgres
+   SESSION_SECRET=<rastgele uzun bir değer>
+   ```
+
+   Rastgele değer için: `node -e 'console.log(require("crypto").randomBytes(32).toString("base64url"))'`
+3. Tabloları oluştur: `npm run db:migrate`
+4. Sahte E-Devlet'e test vatandaşlarını ekle: `npm run db:seed`
+5. `npm run dev`
+
+Şema `src/db/schema.js` içinde. Şemayı değiştirince `npm run db:generate` ile yeni migration üret, sonra `npm run db:migrate`.
+Verileri görmek için: `npm run db:studio`
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started

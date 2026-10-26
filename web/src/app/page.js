@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatSecret, generateSecret, normalizeSecret } from "../lib/secret";
 import { isValidTckn } from "../lib/tckn";
-import { USERS_KEY, generateSiteId, loadUsers } from "../lib/users";
 
 // JSON POST isteği atar; sunucu hata dönerse onun mesajını fırlatır
 async function post(url, body) {
@@ -18,9 +17,10 @@ async function post(url, body) {
   return data;
 }
 
-const emptyForm = { tckn: "", adSoyad: "", password: "" };
+const emptyForm = { tckn: "", ad: "", soyad: "", password: "" };
 
 // Kayıt sayfası ("/"): E-Devlet doğrulaması → gizli metin → kaydedildiğinin kontrolü → hesap kaydı.
+// TCKN, ad ve soyad sadece E-Devlet'e gider; uygulama hesabında sadece şifre (hash'i) tutulur.
 export default function Home() {
   // Akışın adımı: "form" → "onay" → "gizli" → "dogrula" → "tamam"
   const [step, setStep] = useState("form");
@@ -34,7 +34,7 @@ export default function Home() {
   const [saved, setSaved] = useState(false);
   // Doğrulama adımında kullanıcının yapıştırdığı/yazdığı metin
   const [check, setCheck] = useState("");
-  // Kayıt bitince sitenin verdiği giriş ID'si
+  // Kayıt bitince veritabanının verdiği giriş ID'si (UUID)
   const [siteId, setSiteId] = useState(null);
   // Kullanıcıya gösterilen sonuç mesajı: { ok: true/false, text: "..." }
   const [message, setMessage] = useState(null);
@@ -59,7 +59,7 @@ export default function Home() {
     goTo("form");
   }
 
-  // "E-Devlet ile doğrula": E-Devlet'e sadece TCKN ile doğrulama isteği gönderir
+  // "E-Devlet ile doğrula": E-Devlet'e kimlik bilgileriyle doğrulama isteği gönderir (şifre gitmez)
   async function onSubmit(e) {
     e.preventDefault(); // sayfanın yeniden yüklenmesini engelle
 
@@ -68,9 +68,13 @@ export default function Home() {
       return;
     }
 
-    // Aynı TCKN ile ikinci kaydı E-Devlet'in "hesap açtı" işareti engeller; site TCKN tutmaz
+    // Aynı TCKN ile ikinci kaydı E-Devlet'in "hesap açıldı" işareti engeller; uygulama TCKN tutmaz
     try {
-      const { requestId } = await post("/api/edevlet/dogrulama", { tckn: form.tckn });
+      const { requestId } = await post("/api/edevlet/dogrulama", {
+        tckn: form.tckn,
+        ad: form.ad,
+        soyad: form.soyad,
+      });
       setRequestId(requestId);
       goTo("onay");
     } catch (err) {
@@ -108,7 +112,7 @@ export default function Home() {
     URL.revokeObjectURL(url);
   }
 
-  // Kullanıcı gizli metni geri verebiliyorsa hesabı kaydet ve E-Devlet'e işaretlet
+  // Kullanıcı gizli metni geri verebiliyorsa hesabı oluştur (sunucu E-Devlet işaretini de koyar)
   async function onVerify(e) {
     e.preventDefault();
 
@@ -118,20 +122,8 @@ export default function Home() {
     }
 
     try {
-      // TODO: commitment (gizli metnin hash'i) burada sisteme gönderilecek; hash fonksiyonu kararı bekleniyor
-      await post(`/api/edevlet/dogrulama/${requestId}/tamamla`);
-
-      // Hesap TCKN'siz kaydedilir; giriş sitenin verdiği ID ile yapılır.
-      // Güvenlik yok: şifre düz metin saklanıyor (bilerek, öğrenme adımı).
-      const id = generateSiteId();
-      const users = loadUsers();
-      users.push({
-        id,
-        adSoyad: form.adSoyad,
-        password: form.password,
-        createdAt: new Date().toISOString(),
-      });
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      // TODO: commitment (gizli metnin hash'i) burada gönderilecek; hash fonksiyonu kararı bekleniyor
+      const { id } = await post("/api/kayit", { requestId, password: form.password });
 
       setSiteId(id);
       setForm(emptyForm);
@@ -170,11 +162,22 @@ export default function Home() {
             </label>
 
             <label className="flex flex-col gap-1">
-              Ad Soyad
+              Ad
               <input
                 className={input}
-                name="adSoyad"
-                value={form.adSoyad}
+                name="ad"
+                value={form.ad}
+                onChange={onChange}
+                required
+              />
+            </label>
+
+            <label className="flex flex-col gap-1">
+              Soyad
+              <input
+                className={input}
+                name="soyad"
+                value={form.soyad}
                 onChange={onChange}
                 required
               />
@@ -209,8 +212,8 @@ export default function Home() {
           <>
             <h1 className="text-2xl font-semibold">E-Devlet Onayı</h1>
             <p>
-              {form.tckn} için E-Devlet&apos;e hesap açma doğrulaması gönderildi. Hesap
-              bilgilerin E-Devlet&apos;e gönderilmedi.
+              {form.tckn} için E-Devlet&apos;e hesap açma doğrulaması gönderildi. Şifren
+              E-Devlet&apos;e gönderilmedi.
             </p>
             <p className="text-sm text-zinc-500">
               Simülasyon: gerçek sistemde bu onay E-Devlet üzerinden verilir.
@@ -285,7 +288,7 @@ export default function Home() {
               Girişte TCKN kullanılmaz. Bundan sonra bu <strong>kullanıcı ID</strong> ve
               şifrenle giriş yapacaksın, not al:
             </p>
-            <code className="select-all rounded border border-zinc-300 p-3 text-center font-mono text-xl dark:border-zinc-700">
+            <code className="select-all break-all rounded border border-zinc-300 p-3 text-center font-mono dark:border-zinc-700">
               {siteId}
             </code>
             <button onClick={() => copy(siteId)} className={secondary}>
