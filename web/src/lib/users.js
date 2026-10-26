@@ -13,6 +13,28 @@ export function loadUsers() {
   }
 }
 
+// Sitenin kayıtta verdiği giriş kimliği, "K7QM-3XRP" biçiminde. Karışan karakterler (0/O, 1/I) yok.
+// TCKN'den bağımsızdır: TCKN sadece kayıtta E-Devlet'e gider, girişte kullanılmaz.
+const ID_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+export function generateSiteId() {
+  const taken = new Set(loadUsers().map((u) => u.id));
+  let id;
+  do {
+    // 32 karakter 256'yı tam böldüğü için % ile seçmek dağılımı bozmaz
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
+    const chars = Array.from(bytes, (b) => ID_CHARS[b % ID_CHARS.length]).join("");
+    id = `${chars.slice(0, 4)}-${chars.slice(4)}`;
+  } while (taken.has(id));
+  return id;
+}
+
+// Girişte yazılan ID'yi karşılaştırmadan önce: boşluk/tireleri at, büyük harfe çevir, tireyi geri koy
+export function normalizeSiteId(text) {
+  const s = text.replace(/[^a-z0-9]/gi, "").toUpperCase();
+  return s.length === 8 ? `${s.slice(0, 4)}-${s.slice(4)}` : s;
+}
+
 // useCurrentUser kullanan bileşenler burada kayıtlı; giriş/çıkış olunca hepsine haber verilir
 const listeners = new Set();
 

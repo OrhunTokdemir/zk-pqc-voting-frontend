@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { loadUsers, setCurrentUser, useCurrentUser } from "../../lib/users";
+import { loadUsers, normalizeSiteId, setCurrentUser, useCurrentUser } from "../../lib/users";
 
-// Giriş sayfası ("/login"): TCKN + şifreyi kayıtlı kullanıcılarla karşılaştırır.
+// Giriş sayfası ("/login"): sitenin verdiği kullanıcı ID + şifreyi kayıtlı kullanıcılarla karşılaştırır.
+// E-Devlet ve TCKN sadece kayıtta kullanılır, burada kullanılmaz.
 export default function Login() {
   // Form alanlarının anlık değerleri
-  const [form, setForm] = useState({ tckn: "", password: "" });
+  const [form, setForm] = useState({ id: "", password: "" });
   // Şu an giriş yapmış kullanıcı (yoksa null). localStorage'dan okunur.
   const user = useCurrentUser();
   const [error, setError] = useState(null);
@@ -21,20 +22,21 @@ export default function Login() {
   function onSubmit(e) {
     e.preventDefault(); // sayfanın yeniden yüklenmesini engelle
 
-    // TCKN ve şifrenin ikisi birden eşleşen kullanıcıyı ara
+    // ID ve şifrenin ikisi birden eşleşen kullanıcıyı ara
+    const id = normalizeSiteId(form.id);
     const found = loadUsers().find(
-      (u) => u.tckn === form.tckn && u.password === form.password,
+      (u) => u.id === id && u.password === form.password,
     );
 
     if (!found) {
-      setError("TCKN veya şifre hatalı.");
+      setError("Kullanıcı ID veya şifre hatalı.");
       return;
     }
 
     // Girişi kaydet; useCurrentUser() sayesinde ekran otomatik güncellenir
     setCurrentUser(found);
     setError(null);
-    setForm({ tckn: "", password: "" });
+    setForm({ id: "", password: "" });
   }
 
   // Oturumu kapat (currentUser kaydını siler)
@@ -52,7 +54,7 @@ export default function Login() {
       <main className="flex flex-1 items-center justify-center p-6">
         <div className="flex w-full max-w-sm flex-col gap-4">
           <h1 className="text-2xl font-semibold">Hoş geldin, {user.adSoyad}</h1>
-          <p>TCKN: {user.tckn}</p>
+          <p>Kullanıcı ID: {user.id}</p>
           <button
             onClick={logout}
             className="rounded bg-foreground px-4 py-2 text-background"
@@ -70,14 +72,14 @@ export default function Login() {
         <h1 className="text-2xl font-semibold">Giriş Yap</h1>
 
         <label className="flex flex-col gap-1">
-          TCKN
+          Kullanıcı ID
           <input
             className={input}
-            name="tckn"
-            value={form.tckn}
+            name="id"
+            value={form.id}
             onChange={onChange}
-            inputMode="numeric"
-            maxLength={11}
+            placeholder="ABCD-1234"
+            autoCapitalize="characters"
             required
           />
         </label>
