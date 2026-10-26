@@ -1,3 +1,5 @@
+name: zk-pqc-voting
+
 services:
   db:
     image: postgres:17
