@@ -1,14 +1,7 @@
 ## Kurulum (veritabanı)
 
 1. Postgres'i başlat: `npm run db:up` (Docker yerine Podman kullanıyorsan: `podman compose up -d`)
-2. `web/.env.local` dosyasını oluştur (git'e girmez):
-
-   ```
-   DATABASE_URL=postgresql://voting-authority:postgres@localhost:5432/postgres
-   SESSION_SECRET=<rastgele uzun bir değer>
-   ```
-
-   Rastgele değer için: `node -e 'console.log(require("crypto").randomBytes(32).toString("base64url"))'`
+2. Geliştirme ayarlarını kopyala: `cp .env.example .env.local` (`.env.local` git'e girmez; gerçek sunucuda değerleri değiştir)
 3. Tabloları oluştur: `npm run db:migrate`
 4. Sahte E-Devlet'e test vatandaşlarını ekle: `npm run db:seed`
 5. `npm run dev`
